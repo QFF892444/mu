@@ -7,11 +7,12 @@ from PyQt5.QtChart import QChart, QLineSeries, QValueAxis
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QTextCursor
 from unittest import mock
+
 import sys
 import os
 import signal
 import mu
-import platform
+
 from collections import deque
 import mu.interface.panes
 
@@ -164,7 +165,7 @@ def test_MicroPythonREPLPane_keyPressEvent(qtapp):
     data = mock.MagicMock
     data.key = mock.MagicMock(return_value=Qt.Key_A)
     data.text = mock.MagicMock(return_value="a")
-    data.modifiers = mock.MagicMock(return_value=None)
+    data.modifiers = mock.MagicMock(return_value=Qt.NoModifier)
     rp.keyPressEvent(data)
     mock_serial.write.assert_called_once_with(bytes("a", "utf-8"))
 
@@ -177,10 +178,26 @@ def test_MicroPythonREPLPane_keyPressEvent_backspace(qtapp):
     rp = mu.interface.panes.MicroPythonREPLPane(mock_serial)
     data = mock.MagicMock
     data.key = mock.MagicMock(return_value=Qt.Key_Backspace)
-    data.text = mock.MagicMock(return_value="\b")
-    data.modifiers = mock.MagicMock(return_value=None)
+    data.text = mock.MagicMock(return_value="")
+    data.modifiers = mock.MagicMock(return_value=Qt.NoModifier)
     rp.keyPressEvent(data)
-    mock_serial.write.assert_called_once_with(b"\b")
+    mock_serial.write.assert_called_once_with(
+        mu.interface.panes.VT100_BACKSPACE
+    )
+
+
+def test_MicroPythonREPLPane_keyPressEvent_return():
+    """
+    Ensure backspaces in the REPL are handled correctly.
+    """
+    mock_serial = mock.MagicMock()
+    rp = mu.interface.panes.MicroPythonREPLPane(mock_serial)
+    data = mock.MagicMock
+    data.key = mock.MagicMock(return_value=Qt.Key_Return)
+    data.text = mock.MagicMock(return_value="")
+    data.modifiers = mock.MagicMock(return_value=Qt.NoModifier)
+    rp.keyPressEvent(data)
+    mock_serial.write.assert_called_once_with(mu.interface.panes.VT100_RETURN)
 
 
 def test_MicroPythonREPLPane_keyPressEvent_delete(qtapp):
@@ -191,10 +208,10 @@ def test_MicroPythonREPLPane_keyPressEvent_delete(qtapp):
     rp = mu.interface.panes.MicroPythonREPLPane(mock_serial)
     data = mock.MagicMock
     data.key = mock.MagicMock(return_value=Qt.Key_Delete)
-    data.text = mock.MagicMock(return_value="\b")
-    data.modifiers = mock.MagicMock(return_value=None)
+    data.text = mock.MagicMock(return_value="")
+    data.modifiers = mock.MagicMock(return_value=Qt.NoModifier)
     rp.keyPressEvent(data)
-    mock_serial.write.assert_called_once_with(b"\x1B[\x33\x7E")
+    mock_serial.write.assert_called_once_with(mu.interface.panes.VT100_DELETE)
 
 
 def test_MicroPythonREPLPane_keyPressEvent_up(qtapp):
@@ -205,10 +222,10 @@ def test_MicroPythonREPLPane_keyPressEvent_up(qtapp):
     rp = mu.interface.panes.MicroPythonREPLPane(mock_serial)
     data = mock.MagicMock
     data.key = mock.MagicMock(return_value=Qt.Key_Up)
-    data.text = mock.MagicMock(return_value="1b")
-    data.modifiers = mock.MagicMock(return_value=None)
+    data.text = mock.MagicMock(return_value="")
+    data.modifiers = mock.MagicMock(return_value=Qt.NoModifier)
     rp.keyPressEvent(data)
-    mock_serial.write.assert_called_once_with(b"\x1B[A")
+    mock_serial.write.assert_called_once_with(mu.interface.panes.VT100_UP)
 
 
 def test_MicroPythonREPLPane_keyPressEvent_down(qtapp):
@@ -219,10 +236,10 @@ def test_MicroPythonREPLPane_keyPressEvent_down(qtapp):
     rp = mu.interface.panes.MicroPythonREPLPane(mock_serial)
     data = mock.MagicMock
     data.key = mock.MagicMock(return_value=Qt.Key_Down)
-    data.text = mock.MagicMock(return_value="1b")
-    data.modifiers = mock.MagicMock(return_value=None)
+    data.text = mock.MagicMock(return_value="")
+    data.modifiers = mock.MagicMock(return_value=Qt.NoModifier)
     rp.keyPressEvent(data)
-    mock_serial.write.assert_called_once_with(b"\x1B[B")
+    mock_serial.write.assert_called_once_with(mu.interface.panes.VT100_DOWN)
 
 
 def test_MicroPythonREPLPane_keyPressEvent_right(qtapp):
@@ -233,10 +250,10 @@ def test_MicroPythonREPLPane_keyPressEvent_right(qtapp):
     rp = mu.interface.panes.MicroPythonREPLPane(mock_serial)
     data = mock.MagicMock
     data.key = mock.MagicMock(return_value=Qt.Key_Right)
-    data.text = mock.MagicMock(return_value="1b")
-    data.modifiers = mock.MagicMock(return_value=None)
+    data.text = mock.MagicMock(return_value="")
+    data.modifiers = mock.MagicMock(return_value=Qt.NoModifier)
     rp.keyPressEvent(data)
-    mock_serial.write.assert_called_once_with(b"\x1B[C")
+    mock_serial.write.assert_called_once_with(mu.interface.panes.VT100_RIGHT)
 
 
 def test_MicroPythonREPLPane_keyPressEvent_left(qtapp):
@@ -247,10 +264,82 @@ def test_MicroPythonREPLPane_keyPressEvent_left(qtapp):
     rp = mu.interface.panes.MicroPythonREPLPane(mock_serial)
     data = mock.MagicMock
     data.key = mock.MagicMock(return_value=Qt.Key_Left)
-    data.text = mock.MagicMock(return_value="1b")
-    data.modifiers = mock.MagicMock(return_value=None)
+    data.text = mock.MagicMock(return_value="")
+    data.modifiers = mock.MagicMock(return_value=Qt.NoModifier)
     rp.keyPressEvent(data)
-    mock_serial.write.assert_called_once_with(b"\x1B[D")
+    mock_serial.write.assert_called_once_with(mu.interface.panes.VT100_LEFT)
+
+
+@mock.patch("PyQt5.QtWidgets.QTextEdit.keyPressEvent")
+def test_MicroPythonREPLPane_keyPressEvent_shift_right(
+    mock_super_keyPressEvent,
+):
+    """
+    Ensure right arrows with shift in the REPL are passed through to
+    the super class, to perform a selection.
+    """
+    mock_serial = mock.MagicMock()
+    rp = mu.interface.panes.MicroPythonREPLPane(mock_serial)
+    data = mock.MagicMock
+    data.key = mock.MagicMock(return_value=Qt.Key_Right)
+    data.text = mock.MagicMock(return_value="")
+    data.modifiers = mock.MagicMock(return_value=Qt.ShiftModifier)
+    rp.keyPressEvent(data)
+    mock_super_keyPressEvent.assert_called_once_with(data)
+
+
+@mock.patch("PyQt5.QtWidgets.QTextEdit.keyPressEvent")
+def test_MicroPythonREPLPane_keyPressEvent_shift_left(
+    mock_super_keyPressEvent,
+):
+    """
+    Ensure left arrows with shift in the REPL are passed through to
+    the super class, to perform a selection.
+    """
+    mock_serial = mock.MagicMock()
+    rp = mu.interface.panes.MicroPythonREPLPane(mock_serial)
+    data = mock.MagicMock
+    data.key = mock.MagicMock(return_value=Qt.Key_Left)
+    data.text = mock.MagicMock(return_value="")
+    data.modifiers = mock.MagicMock(return_value=Qt.ShiftModifier)
+    rp.keyPressEvent(data)
+    mock_super_keyPressEvent.assert_called_once_with(data)
+
+
+@mock.patch("PyQt5.QtGui.QTextCursor.hasSelection", return_value=True)
+@mock.patch("PyQt5.QtGui.QTextCursor.selectionEnd", return_value=30)
+def test_MicroPythonREPLPane_keyPressEvent_right_with_selection(a, b):
+    """
+    Ensure right arrows in the REPL when a selection is made, moves the cursor
+    to the end of the selection.
+    """
+    mock_serial = mock.MagicMock()
+    rp = mu.interface.panes.MicroPythonREPLPane(mock_serial)
+    data = mock.MagicMock
+    data.key = mock.MagicMock(return_value=Qt.Key_Right)
+    data.text = mock.MagicMock(return_value="")
+    data.modifiers = mock.MagicMock(return_value=Qt.NoModifier)
+    rp.move_cursor_to = mock.MagicMock()
+    rp.keyPressEvent(data)
+    rp.move_cursor_to.assert_called_once_with(30)
+
+
+@mock.patch("PyQt5.QtGui.QTextCursor.hasSelection", return_value=True)
+@mock.patch("PyQt5.QtGui.QTextCursor.selectionStart", return_value=20)
+def test_MicroPythonREPLPane_keyPressEvent_left_with_selection(a, b):
+    """
+    Ensure left arrows in the REPL when a selection is made, moves the cursor
+    to the start of the selection.
+    """
+    mock_serial = mock.MagicMock()
+    rp = mu.interface.panes.MicroPythonREPLPane(mock_serial)
+    data = mock.MagicMock
+    data.key = mock.MagicMock(return_value=Qt.Key_Left)
+    data.text = mock.MagicMock(return_value="")
+    data.modifiers = mock.MagicMock(return_value=Qt.NoModifier)
+    rp.move_cursor_to = mock.MagicMock()
+    rp.keyPressEvent(data)
+    rp.move_cursor_to.assert_called_once_with(20)
 
 
 def test_MicroPythonREPLPane_keyPressEvent_home(qtapp):
@@ -261,10 +350,10 @@ def test_MicroPythonREPLPane_keyPressEvent_home(qtapp):
     rp = mu.interface.panes.MicroPythonREPLPane(mock_serial)
     data = mock.MagicMock
     data.key = mock.MagicMock(return_value=Qt.Key_Home)
-    data.text = mock.MagicMock(return_value="1b")
-    data.modifiers = mock.MagicMock(return_value=None)
+    data.text = mock.MagicMock(return_value="")
+    data.modifiers = mock.MagicMock(return_value=Qt.NoModifier)
     rp.keyPressEvent(data)
-    mock_serial.write.assert_called_once_with(b"\x1B[H")
+    mock_serial.write.assert_called_once_with(mu.interface.panes.VT100_HOME)
 
 
 def test_MicroPythonREPLPane_keyPressEvent_end(qtapp):
@@ -275,10 +364,10 @@ def test_MicroPythonREPLPane_keyPressEvent_end(qtapp):
     rp = mu.interface.panes.MicroPythonREPLPane(mock_serial)
     data = mock.MagicMock
     data.key = mock.MagicMock(return_value=Qt.Key_End)
-    data.text = mock.MagicMock(return_value="1b")
-    data.modifiers = mock.MagicMock(return_value=None)
+    data.text = mock.MagicMock(return_value="")
+    data.modifiers = mock.MagicMock(return_value=Qt.NoModifier)
     rp.keyPressEvent(data)
-    mock_serial.write.assert_called_once_with(b"\x1B[F")
+    mock_serial.write.assert_called_once_with(mu.interface.panes.VT100_END)
 
 
 def test_MicroPythonREPLPane_keyPressEvent_CTRL_C_Darwin(qtapp):
@@ -290,7 +379,7 @@ def test_MicroPythonREPLPane_keyPressEvent_CTRL_C_Darwin(qtapp):
     rp.copy = mock.MagicMock()
     data = mock.MagicMock()
     data.key = mock.MagicMock(return_value=Qt.Key_C)
-    data.text = mock.MagicMock(return_value="1b")
+    data.text = mock.MagicMock(return_value="")
     data.modifiers.return_value = Qt.ControlModifier | Qt.ShiftModifier
     rp.keyPressEvent(data)
     rp.copy.assert_called_once_with()
@@ -305,13 +394,14 @@ def test_MicroPythonREPLPane_keyPressEvent_CTRL_V_Darwin(qtapp):
     rp.paste = mock.MagicMock()
     data = mock.MagicMock()
     data.key = mock.MagicMock(return_value=Qt.Key_V)
-    data.text = mock.MagicMock(return_value="1b")
+    data.text = mock.MagicMock(return_value="")
     data.modifiers.return_value = Qt.ControlModifier | Qt.ShiftModifier
     rp.keyPressEvent(data)
     rp.paste.assert_called_once_with()
 
 
-def test_MicroPythonREPLPane_keyPressEvent_meta(qtapp):
+@mock.patch("platform.system", mock.MagicMock(return_value="Darwin"))
+def test_MicroPythonREPLPane_keyPressEvent_ctrl_passthrough_darwin(qtapp):
     """
     Ensure backspaces in the REPL are handled correctly.
     """
@@ -320,112 +410,26 @@ def test_MicroPythonREPLPane_keyPressEvent_meta(qtapp):
     data = mock.MagicMock
     data.key = mock.MagicMock(return_value=Qt.Key_M)
     data.text = mock.MagicMock(return_value="a")
-    if platform.system() == "Darwin":
-        data.modifiers = mock.MagicMock(return_value=Qt.MetaModifier)
-    else:
-        data.modifiers = mock.MagicMock(return_value=Qt.ControlModifier)
+    data.modifiers = mock.MagicMock(return_value=Qt.MetaModifier)
     rp.keyPressEvent(data)
     expected = 1 + Qt.Key_M - Qt.Key_A
     mock_serial.write.assert_called_once_with(bytes([expected]))
 
 
-def test_MicroPythonREPLPane_process_bytes(qtapp):
+@mock.patch("platform.system", mock.MagicMock(return_value="Windows"))
+def test_MicroPythonREPLPane_keyPressEvent_ctrl_passthrough_windows(qtapp):
     """
-    Ensure bytes coming from the device to the application are processed as
-    expected. Backspace is enacted, carriage-return is ignored, newline moves
-    the cursor position to the end of the line before enacted and all others
-    are simply inserted.
+    Ensure backspaces in the REPL are handled correctly.
     """
     mock_serial = mock.MagicMock()
-    mock_tc = mock.MagicMock()
-    mock_tc.movePosition = mock.MagicMock(
-        side_effect=[True, False, True, True]
-    )
-    mock_tc.deleteChar = mock.MagicMock(return_value=None)
     rp = mu.interface.panes.MicroPythonREPLPane(mock_serial)
-    rp.textCursor = mock.MagicMock(return_value=mock_tc)
-    rp.setTextCursor = mock.MagicMock(return_value=None)
-    rp.insertPlainText = mock.MagicMock(return_value=None)
-    rp.ensureCursorVisible = mock.MagicMock(return_value=None)
-    bs = bytes([8, 13, 10, 65])  # \b, \r, \n, 'A'
-    rp.process_bytes(bs)
-    rp.textCursor.assert_called_once_with()
-    assert mock_tc.movePosition.call_count == 4
-    assert mock_tc.movePosition.call_args_list[0][0][0] == QTextCursor.Down
-    assert mock_tc.movePosition.call_args_list[1][0][0] == QTextCursor.Down
-    assert mock_tc.movePosition.call_args_list[2][0][0] == QTextCursor.Left
-    assert mock_tc.movePosition.call_args_list[3][0][0] == QTextCursor.End
-    assert rp.setTextCursor.call_count == 3
-    assert rp.setTextCursor.call_args_list[0][0][0] == mock_tc
-    assert rp.setTextCursor.call_args_list[1][0][0] == mock_tc
-    assert rp.setTextCursor.call_args_list[2][0][0] == mock_tc
-    assert rp.insertPlainText.call_count == 2
-    assert rp.insertPlainText.call_args_list[0][0][0] == chr(10)
-    assert rp.insertPlainText.call_args_list[1][0][0] == chr(65)
-    rp.ensureCursorVisible.assert_called_once_with()
-
-
-def test_MicroPythonREPLPane_process_bytes_VT100(qtapp):
-    """
-    Ensure bytes coming from the device to the application are processed as
-    expected. In this case, make sure VT100 related codes are handled properly.
-    """
-    mock_serial = mock.MagicMock()
-    mock_tc = mock.MagicMock()
-    mock_tc.movePosition = mock.MagicMock(return_value=False)
-    mock_tc.removeSelectedText = mock.MagicMock()
-    mock_tc.deleteChar = mock.MagicMock(return_value=None)
-    rp = mu.interface.panes.MicroPythonREPLPane(mock_serial)
-    rp.textCursor = mock.MagicMock(return_value=mock_tc)
-    rp.setTextCursor = mock.MagicMock(return_value=None)
-    rp.insertPlainText = mock.MagicMock(return_value=None)
-    rp.ensureCursorVisible = mock.MagicMock(return_value=None)
-    bs = bytes(
-        [
-            27,
-            91,
-            ord("1"),
-            ord("A"),  # <Esc>[1A
-            27,
-            91,
-            ord("1"),
-            ord("B"),  # <Esc>[1B
-            27,
-            91,
-            ord("1"),
-            ord("C"),  # <Esc>[1C
-            27,
-            91,
-            ord("1"),
-            ord("D"),  # <Esc>[1D
-            27,
-            91,
-            ord("K"),  # <Esc>[K
-        ]
-    )
-    rp.process_bytes(bs)
-    rp.textCursor.assert_called_once_with()
-    assert mock_tc.movePosition.call_count == 6
-    assert mock_tc.movePosition.call_args_list[0][0][0] == QTextCursor.Down
-    assert mock_tc.movePosition.call_args_list[1][0][0] == QTextCursor.Up
-    assert mock_tc.movePosition.call_args_list[2][0][0] == QTextCursor.Down
-    assert mock_tc.movePosition.call_args_list[3][0][0] == QTextCursor.Right
-    assert mock_tc.movePosition.call_args_list[4][0][0] == QTextCursor.Left
-    assert (
-        mock_tc.movePosition.call_args_list[5][0][0] == QTextCursor.EndOfLine
-    )
-    assert (
-        mock_tc.movePosition.call_args_list[5][1]["mode"]
-        == QTextCursor.KeepAnchor
-    )
-    assert rp.setTextCursor.call_count == 5
-    assert rp.setTextCursor.call_args_list[0][0][0] == mock_tc
-    assert rp.setTextCursor.call_args_list[1][0][0] == mock_tc
-    assert rp.setTextCursor.call_args_list[2][0][0] == mock_tc
-    assert rp.setTextCursor.call_args_list[3][0][0] == mock_tc
-    assert rp.setTextCursor.call_args_list[4][0][0] == mock_tc
-    mock_tc.removeSelectedText.assert_called_once_with()
-    rp.ensureCursorVisible.assert_called_once_with()
+    data = mock.MagicMock
+    data.key = mock.MagicMock(return_value=Qt.Key_M)
+    data.text = mock.MagicMock(return_value="a")
+    data.modifiers = mock.MagicMock(return_value=Qt.ControlModifier)
+    rp.keyPressEvent(data)
+    expected = 1 + Qt.Key_M - Qt.Key_A
+    mock_serial.write.assert_called_once_with(bytes([expected]))
 
 
 def test_MicroPythonREPLPane_clear(qtapp):

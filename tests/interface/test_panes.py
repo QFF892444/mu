@@ -541,7 +541,7 @@ def test_MicroPythonREPLPane_mouseReleasedEvent_no_selection(qtapp):
     )
     rp.mouseReleaseEvent(mouseEvent)
     # Check set_devicecursor_to_qtcursor was called
-    rp.set_devicecursor_to_qtcursor.assert_called_once()
+    rp.set_devicecursor_to_qtcursor.assert_called_once_with()
 
 
 def test_MicroPythonREPLPane_mouseReleasedEvent_with_selection(qtapp):
